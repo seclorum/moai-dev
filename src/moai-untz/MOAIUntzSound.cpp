@@ -127,6 +127,26 @@ int MOAIUntzSound::_isPlaying ( lua_State* L ) {
 	return 0;
 }
 
+
+uint32_t MOAIUntzSound::_synthCallback(float* buffers, UInt32 numChannels, UInt32 length, void* userdata)
+{
+    // userdata is self
+    
+    static float phasor = 0.0f; // 0...1.0
+    const float freq = 440.0f;
+    const float phaseIncrement = (1.0 / 44100.0f) * freq;
+
+    for (int i = 0; i < length; i++) {
+        buffers[i] = sin(phasor);
+        phasor += phaseIncrement;
+        while(phasor > 1.0f) {
+            phasor -= 1.0f;
+        }
+    }
+    
+    return length; //  number of frames
+}
+
 //----------------------------------------------------------------//
 /**	@name	load
 	@text	Loads a sound from disk or from a buffer.
@@ -170,7 +190,24 @@ int MOAIUntzSound::_load ( lua_State* L ) {
 			self->mSound = NULL;
 		}
 	}
-
+    else if ( state.IsType( 2, LUA_TTABLE) )
+    {
+        // table is in the stack at index '2'
+        lua_pushnil(L);  // first key
+        while (lua_next(L, 2) != 0)
+        {
+            // uses 'key' (at index -2) and 'value' (at index -1)
+            printf("%s - %s\n", luaL_typename(L, -2), luaL_typename(L, -1));
+            printf("[%s = %f]\n", state.GetValue < cc8 *>(-2, ""), state.GetValue < float >(-1, 0)); //, luaL_typename(L, -1));
+            // removes 'value'; keeps 'key' for next iteration
+            lua_pop(L, 1);
+        }
+        
+        // Create a sound object that streams audio data via a callback
+        self->mSound = UNTZ::Sound::create(44100, 2, (UNTZ::StreamCallback*)self->_synthCallback, (void *)self->mUserData);
+        self->mSound->setVolume(0.5);
+    }
+    
 	return 0;
 }
 

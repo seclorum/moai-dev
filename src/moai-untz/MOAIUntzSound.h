@@ -18,11 +18,15 @@ class MOAIDataBuffer;
 	
 	@attr	ATTR_VOLUME
 */
+
 class MOAIUntzSound :
 	public virtual MOAINode {
 private:
 
-	UNTZ::Sound* mSound;
+    void * mUserData;
+    static uint32_t _synthCallback(float* buffers, UInt32 numChannels, UInt32 length, void* userdata);
+
+    UNTZ::Sound* mSound;
 	STLString mFilename;
 	bool mInMemory;
 
